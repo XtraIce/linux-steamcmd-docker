@@ -1,0 +1,2 @@
+# Ignore all files beyond the RecentSave directory
+**/RecentSave/*
