@@ -1,2 +1,3 @@
 # Ignore all files beyond the RecentSave directory
-**/RecentSave/*
+**/RecentSave/*.sav
+**/RecentSave/**/*.sav
