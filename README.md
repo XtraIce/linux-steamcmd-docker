@@ -1,6 +1,6 @@
 # palworld-linux-steamcmd-docker
-Simple Dockerfile that installs steamcmd and a palworld server with option of saves
-Note: Other docker images exist, but they didn't work for me and what I wanted. So I made this for myself, and thought I'd just share.
+Simple Dockerfile that installs steamcmd and a palworld server with option of saves \
+**Note:** Other docker images exist, but they didn't work for me and what I wanted. So I made this for myself, and thought I'd just share.
 
 **Installation**
 1. download this repo to any directory.
