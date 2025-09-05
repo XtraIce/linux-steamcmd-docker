@@ -100,3 +100,5 @@ RUN systemctl enable palworld.service \
     && touch /var/log/journal/palworld.service.log \
     && touch /var/log/journal/palworld_update.service.log
 CMD ["/usr/bin/systemctl", "init"]
+
+USER steam
