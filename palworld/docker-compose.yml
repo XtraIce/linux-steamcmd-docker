@@ -1,0 +1,49 @@
+version: '3.8'
+
+x-palworld-vars: &palworld-vars
+  APP_USER: steam
+  BACKUPS_DIR: PalWorldBackups
+  DATA_DIR: /home/steam/serverdata
+  GAME_EXECUTABLE: PalServer.sh
+  # GAME_EXECUTABLE_PATH: /home/steam/serverdata/palworld/PalServer.sh
+  GAME_ID: 2394010
+  GAME_NAME: palworld
+  GAME_SETTINGS_PATH: Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+  HOME: /home/steam
+  RCON_PASSWORD: password
+  RCON_PORT: 25575
+  REQUIRED_SCRIPT: ""
+  MIGRATION_SETTINGS_PATH: /Config/PalWorldSettings.ini
+  MIGRATION_DATA_DIR: ./palworld/files
+  # Use relative path inside server dir instead of absolute /Pal
+  SAVED_GAME_DIR: Pal/Saved/SaveGames
+  SAVED_GAME_HASH_DIR: 0
+  SERVER_DIR: /home/steam/serverdata/palworld
+  STEAMCMD_DIR: /home/steam/serverdata/steamcmd
+  STEAM_DIR: /home/steam/steam
+
+services:
+  palworld:
+    image: palworld-server:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        <<: *palworld-vars
+        SERVER_SUBDIR: palworld
+        STEAMCMD_SUBDIR: steamcmd
+    container_name: palworld-server
+    restart: unless-stopped
+    environment:
+      <<: *palworld-vars
+      # APP_NAME can be derived at runtime: export APP_NAME="${GAME_NAME}-server" if needed
+    ports:
+      - "8211:8211/udp"   # Game port (adjust as needed)
+      - "25575:25575"     # RCON port
+    # volumes:
+    #   - ../files/Saved_Game:/home/steam/Saved_Game
+    #   - ../files/Saved_Game/Config:/home/steam/Saved_Game/Config
+    #   - ../files/Saved_Game/World:/home/steam/Saved_Game/World
+    tty: true
+    stdin_open: true
+    command: /usr/local/bin/palworld-entrypoint
