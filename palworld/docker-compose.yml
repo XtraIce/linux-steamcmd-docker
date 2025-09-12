@@ -38,12 +38,14 @@ services:
       <<: *palworld-vars
       # APP_NAME can be derived at runtime: export APP_NAME="${GAME_NAME}-server" if needed
     ports:
-      - "8211:8211/udp"   # Game port (adjust as needed)
+      - "8211-8212:8211-8212/udp"   # Game port (adjust as needed)
       - "25575:25575"     # RCON port
-    # volumes:
+    volumes:
+      - ./scripts:/usr/local/src/palworld-scripts:ro
+      - ./files/Saved_Game:${SERVER_DIR}/Pal/Saved/SaveGames
     #   - ../files/Saved_Game:/home/steam/Saved_Game
     #   - ../files/Saved_Game/Config:/home/steam/Saved_Game/Config
     #   - ../files/Saved_Game/World:/home/steam/Saved_Game/World
     tty: true
     stdin_open: true
-    command: /usr/local/bin/palworld-entrypoint
+    command: /usr/local/src/palworld-scripts/entrypoint.sh

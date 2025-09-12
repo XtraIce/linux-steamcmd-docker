@@ -1,0 +1,80 @@
+x-vrising-vars: &vrising-vars
+  APP_USER: steam
+  BACKUPS_DIR: GenericBackups
+  DATA_DIR: /home/steam/serverdata
+  GAME_EXECUTABLE_PREFIX: "/usr/bin/xvfb-run -a wine64"
+  GAME_EXECUTABLE: VRisingServer.exe
+  GAME_EXECUTABLE_POSTFIX: "-persistentDataPath /home/steam/serverdata/vrising/save-data"
+  GAME_ID: 1829350
+  GAME_NAME: vrising
+  GAME_SETTINGS_PATH: StreamingAssets/Settings
+  RCON_PASSWORD: password
+  RCON_PORT: 25576
+  MIGRATION_DATA_HOST_DIR: files/Saved_Game
+  MIGRATION_DATA_CNTR_DIR: /usr/home/steam/serverdata/migration-data
+  SAVED_GAME_DIR: /home/steam/serverdata/vrising/save-data
+  SAVED_GAME_HASH_DIR: 0
+  SERVER_DIR: /home/steam/serverdata/vrising
+  START_SCRIPT: /usr/local/src/vrising-scripts/run_server.sh
+  STEAMCMD_DIR: /home/steam/serverdata/steamcmd
+  STEAMCMD_INSTALL_OPTIONS: >-
+        +@sSteamCmdForcePlatformType windows
+  
+  STEAM_DIR: /home/steam/steam
+  HOME: /home/steam
+
+services:
+  vrising:
+    image: vrising:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        <<: *vrising-vars
+        BASE_IMAGE: ich777/winehq-baseimage #ich777/steamcmd:vrising
+        SERVER_SUBDIR: vrising
+        STEAMCMD_SUBDIR: steamcmd
+    container_name: vrising-server
+    restart: unless-stopped
+    environment:
+      <<: *vrising-vars
+      INIT_RUN_SECONDS: 0  # Skip initial timed server run
+      VR_SERVER_NAME: "XtraIce Vrising Server"
+      VR_DESCRIPTION: "Welcome to XtraIce's SteamCmd Linux Vrising Server!"
+      VR_GAME_PORT: 9876
+      VR_QUERY_PORT: 9877
+      #VR_BIND_ADDRESS: "0.0.0.0"  # Set to your server's local IP address
+      VR_HIDEIPADDRESS: true  #  Set to "true" to hide IP address from server listings
+      VR_MAX_USERS: 10
+      VR_MAX_ADMINS: 4
+      VR_TARGET_FPS: 30
+      VR_LOWER_FPS_WHEN_EMPTY: true
+      VR_LOWER_FPS_WHEN_EMPTY_VALUE: 5
+      VR_PASSWORD: "password"  # Set a password to make the server private
+      VR_SECURE: true  # Enable VAC (Valve Anti-Cheat)
+      VR_LIST_ON_EOS: true  # List the server on Epic Online Services
+      VR_LIST_ON_STEAM: true  # List the server on Steam
+      VR_PRESET: "StandardPvE"
+      VR_DIFFICULTY_PRESET: "Difficulty_Normal"
+      VR_SAVE_NAME: "xtraice_world" # Update to change the save game dir if transferring an existing world directory name
+      VR_SAVE_COUNT: 30
+      VR_SAVE_INTERVAL: 120
+      VR_AUTOSAVESMARTKEEP: "10:1:1,30:0:1,60:0:1,120:0:1,180:0:1,240:0:1,360:0:1,720:0:1,1440:0:1,2880:0:1,52560000:99:0" # Smart keep settings for saves
+      VR_LAN_MODE: false
+      VR_RESET_DAYS_INTERVAL: 0
+      VR_DAY_OF_RESET: "Any"
+      VR_SAFERECONNECTTIME: 300
+      VR_SAFERECONNECTSLOTS: 5
+      VR_RCON_ENABLED: true
+      VR_RCON_PORT: 25576
+      VR_RCON_PASSWORD: "rcon"
+      # VR_RCON_BIND_ADDRESS: ""
+    ports:
+      - 9876-9877:9876-9877/udp
+      - "25576:25576"     # RCON port
+    volumes:
+        - ./scripts:/usr/local/src/vrising-scripts:ro
+        - ./files/Saved_Game:/usr/home/steam/serverdata/migration-data:ro
+    tty: true
+    stdin_open: true
+    command: /usr/local/src/vrising-scripts/entrypoint.sh

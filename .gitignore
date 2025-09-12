@@ -1,3 +1,4 @@
 # Ignore all files beyond the RecentSave directory
-**/RecentSave/*.sav
-**/RecentSave/**/*.sav
+**/files/**
+!**.ini
+**/local/**

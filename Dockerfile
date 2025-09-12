@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7-labs
-FROM ubuntu
+ARG BASE_IMAGE=debian:bookworm-slim
+FROM ${BASE_IMAGE}
 
 LABEL version="1.0"
 LABEL description="Docker image for SteamCMD Game Server"
@@ -10,6 +11,8 @@ ARG APP_USER=steam
 ARG BACKUPS_DIR=GenericBackups
 ARG DATA_DIR=/home/steam/serverdata
 ARG GAME_EXECUTABLE=Executable.sh
+ARG GAME_EXECUTABLE_PREFIX=""
+ARG GAME_EXECUTABLE_POSTFIX=""
 ARG GAME_ID=0000000
 ARG GAME_NAME=game
 ARG GAME_SETTINGS_PATH=GameSettings.ini
@@ -20,15 +23,20 @@ ARG MIGRATION_DATA_DIR=./files
 ARG SAVED_GAME_DIR=Saved/SaveGames
 ARG SAVED_GAME_HASH_DIR=0
 ARG SERVER_SUBDIR=gameserver
+ARG START_SCRIPT=""
 ARG STEAMCMD_SUBDIR=steamcmd
+ARG STEAMCMD_INSTALL_OPTIONS=""
 
-# Runtime environment (export build args for container use)
+## Runtime environment (export build args for container use)
+## NOTE: In Docker, variables defined earlier in the SAME ENV instruction are NOT available
+## for expansion later in that instruction. Split into two ENVs so GAME_EXECUTABLE_CMD can
+## reference GAME_EXECUTABLE_PATH correctly.
 ENV APP_USER=$APP_USER \
     BACKUPS_DIR=$BACKUPS_DIR \
     DATA_DIR=$DATA_DIR \
-    GAME_EXECUTABLE_PATH=${DATA_DIR}/${GAME_NAME}/${GAME_EXECUTABLE} \
-    GAME_ID=$GAME_ID \
     GAME_NAME=$GAME_NAME \
+    GAME_EXECUTABLE_PATH="${DATA_DIR}/${GAME_NAME}/${GAME_EXECUTABLE}" \
+    GAME_ID=$GAME_ID \
     GAME_SETTINGS_PATH=$GAME_SETTINGS_PATH \
     HOME=/home/steam \
     RCON_PASSWORD=$RCON_PASSWORD \
@@ -38,23 +46,32 @@ ENV APP_USER=$APP_USER \
     SAVED_GAME_DIR=$SAVED_GAME_DIR \
     SAVED_GAME_HASH_DIR=$SAVED_GAME_HASH_DIR \
     SERVER_DIR=$DATA_DIR/$SERVER_SUBDIR \
+    START_SCRIPT=$START_SCRIPT \
     STEAMCMD_DIR=$DATA_DIR/$STEAMCMD_SUBDIR \
+    STEAMCMD_INSTALL_OPTIONS=$STEAMCMD_INSTALL_OPTIONS \
     STEAM_DIR=/home/steam/steam
+
+# Now that GAME_EXECUTABLE_PATH is defined in a previous layer, we can safely expand it here
+ENV GAME_EXECUTABLE_CMD="${GAME_EXECUTABLE_PREFIX} ${GAME_EXECUTABLE_PATH} ${GAME_EXECUTABLE_POSTFIX}"
+
+ENV START_CMD="${START_SCRIPT:-${GAME_EXECUTABLE_CMD}}"
+RUN printenv
 
 # NOTE: APP_NAME intentionally omitted; compute at runtime if needed: APP_NAME="${GAME_NAME}-server"
 
 RUN apt-get update && apt-get -y upgrade \
-    && apt-get -y install lib32gcc-s1 libc6-i386 wget apt-utils git systemd curl unzip sudo python3 net-tools nano cron \
+    # Add winbind for ntlm_auth used by Wine (suppresses warning). Keep base minimal otherwise.
+    && apt-get -y install lib32gcc-s1 libc6-i386 wget apt-utils git systemd curl unzip sudo python3 net-tools nano cron winbind xvfb \
     && useradd -ms /bin/bash ${APP_USER} \
     && echo "${APP_USER}:${APP_USER}" | chpasswd
 
-# If REQUIRED_SCRIPT is provided, copy & execute it (e.g., Wine install). Silently skip if empty
-COPY ${REQUIRED_SCRIPT} /tmp/
-RUN if [ -n "${REQUIRED_SCRIPT}" ] && [ -f "/tmp/${REQUIRED_SCRIPT}" ]; then \
-            chmod +x "/tmp/${REQUIRED_SCRIPT}" && /tmp/${REQUIRED_SCRIPT}; \
-        else \
-            echo "[INFO] No REQUIRED_SCRIPT provided or file missing. Skipping."; \
-        fi
+# If REQUIRED_SCRIPT is provided, mount & execute it; Silently skip if empty
+RUN --mount=type=bind,source=${REQUIRED_SCRIPT},target=/tmp/required_script,rw \
+    if [ -n "${REQUIRED_SCRIPT}" ] && [ -f "/tmp/required_script" ]; then \
+        chmod +x "/tmp/required_script" && /tmp/required_script; \
+    else \
+        echo "[INFO] No REQUIRED_SCRIPT provided or file missing. Skipping."; \
+    fi
 # run sudo without password
 RUN echo "steam ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \ 
     && usermod -aG sudo steam
@@ -84,8 +101,8 @@ RUN chown -R ${APP_USER} ${DATA_DIR}/repos/ \
     && cp ${DATA_DIR}/repos/linux-steamcmd/etc/cron.d/steamcmd_server_update /etc/cron.d/steamcmd_server_update \
     && chmod 644 /etc/cron.d/steamcmd_server_update \
     && cp ${DATA_DIR}/repos/docker-systemctl-replacement/files/docker/systemctl3.py /usr/bin/systemctl \
-    #write sed command to replace "$EXECPATH" variable in steamcmd_server.service file with "${GAME_EXECUTABLE_PATH}"
-    && sed -i "s|\$EXECPATH|${GAME_EXECUTABLE_PATH}|g" /etc/systemd/system/steamcmd_server.service \
+    #write sed command to replace "$EXECPATH" variable in steamcmd_server.service file with "${GAME_EXECUTABLE_CMD}"
+    && sed -i "s|\$EXECPATH|${START_CMD}|g" /etc/systemd/system/steamcmd_server.service \
     #write sed command to replace "$EXECPATH" variable in steamcmd_server_update.service file with "${DATA_DIR}/repos/linux-steamcmd"
     && sed -i "s|\$EXECPATH|${DATA_DIR}/repos/linux-steamcmd|g" /etc/systemd/system/steamcmd_server_update.service \
     #write sed command to replace "game_server" in SaveAndUpdate.sh file with "${GAME_NAME}"
@@ -117,16 +134,11 @@ RUN --mount=type=cache,target=${STEAMCMD_DIR}/steamapps \
         ${STEAMCMD_DIR}/steamcmd.sh \
             +force_install_dir $SERVER_DIR \
             +login anonymous \
+            ${STEAMCMD_INSTALL_OPTIONS} \
             +app_update $GAME_ID \
             +quit
 RUN chown -R ${APP_USER} ${HOME} \
     && ls -la ${SERVER_DIR}
-
-COPY ${MIGRATION_DATA_DIR} /home/steam
-
-# Copy entrypoint scripts (game-specific helpers) if present
-COPY scripts/palworld-entrypoint.sh /usr/local/bin/palworld-entrypoint
-RUN chmod +x /usr/local/bin/palworld-entrypoint && chown ${APP_USER}:${APP_USER} /usr/local/bin/palworld-entrypoint
 
 USER ${APP_USER}
 # Game-specific runtime initialization (e.g., Palworld settings copy) moved to docker-compose command.
@@ -140,7 +152,9 @@ RUN mkdir -p /var/log/journal \
  && touch /var/log/journal/steamcmd_server_update.service.log \
  && chown -R ${APP_USER}:${APP_USER} /var/log/journal \
  && chmod 664 /var/log/journal/steamcmd_server.service.log /var/log/journal/steamcmd_server_update.service.log \
- && systemctl enable steamcmd_server.service
+ && systemctl enable steamcmd_server.service \
+ && mkdir -p /var/run \
+ && chmod 755 /var/run
 CMD ["/usr/bin/systemctl", "init"]
 
 USER steam
