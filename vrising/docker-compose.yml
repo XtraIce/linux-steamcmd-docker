@@ -1,6 +1,18 @@
 x-vrising-vars: &vrising-vars
   APP_USER: steam
-  BACKUPS_DIR: GenericBackups
+                  #Update / Backup Frequency
+                # BACKUP_CRON_X uses standard cron syntax: 
+                # ┌───────────── minute (0 - 59)
+                # │ ┌───────────── hour (0 - 23)
+                # │ │ ┌───────────── day of month (1 - 31)
+                # │ │ │ ┌───────────── month (1 - 12)
+                # │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+                # │ │ │ │ │
+                # │ │ │ │ │
+                # * * * * *
+      # Example: "0 4 * * *" runs the update/backup daily at 4:00 AM.
+  BACKUP_CRON_X: "0 4 * * *"  # Daily at 4 AM 
+  BACKUPS_DIR: VrisingBackups
   DATA_DIR: /home/steam/serverdata
   GAME_EXECUTABLE_PREFIX: "/usr/bin/xvfb-run -a wine64"
   GAME_EXECUTABLE: VRisingServer.exe
@@ -8,6 +20,7 @@ x-vrising-vars: &vrising-vars
   GAME_ID: 1829350
   GAME_NAME: vrising
   GAME_SETTINGS_PATH: StreamingAssets/Settings
+  HOME: /home/steam
   RCON_PASSWORD: password
   RCON_PORT: 25576
   MIGRATION_DATA_HOST_DIR: files/Saved_Game
@@ -75,6 +88,7 @@ services:
     volumes:
         - ./scripts:/usr/local/src/vrising-scripts:ro
         - ./files/Saved_Game:/usr/home/steam/serverdata/migration-data:ro
+        - ./backups:/home/steam/serverdata/VrisingBackups:rw
     tty: true
     stdin_open: true
     command: /usr/local/src/vrising-scripts/entrypoint.sh

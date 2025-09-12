@@ -2,20 +2,30 @@ version: '3.8'
 
 x-palworld-vars: &palworld-vars
   APP_USER: steam
+                  # Update / Backup Frequency
+                # BACKUP_CRON_X uses standard cron syntax:
+                # ┌───────────── minute (0 - 59)
+                # │ ┌───────────── hour (0 - 23)
+                # │ │ ┌───────────── day of month (1 - 31)
+                # │ │ │ ┌───────────── month (1 - 12)
+                # │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+                # │ │ │ │ │
+                # │ │ │ │ │
+                # * * * * *
+      # Example: "0 4 * * *" runs the update/backup daily at 4:00 AM.
+  BACKUP_CRON_X: "0 4 * * *"  # Daily at 4 AM 
   BACKUPS_DIR: PalWorldBackups
   DATA_DIR: /home/steam/serverdata
   GAME_EXECUTABLE: PalServer.sh
-  # GAME_EXECUTABLE_PATH: /home/steam/serverdata/palworld/PalServer.sh
   GAME_ID: 2394010
   GAME_NAME: palworld
   GAME_SETTINGS_PATH: Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
   HOME: /home/steam
+  MIGRATION_SETTINGS_PATH: /Config/PalWorldSettings.ini
+  MIGRATION_DATA_DIR: ./palworld/files
   RCON_PASSWORD: password
   RCON_PORT: 25575
   REQUIRED_SCRIPT: ""
-  MIGRATION_SETTINGS_PATH: /Config/PalWorldSettings.ini
-  MIGRATION_DATA_DIR: ./palworld/files
-  # Use relative path inside server dir instead of absolute /Pal
   SAVED_GAME_DIR: Pal/Saved/SaveGames
   SAVED_GAME_HASH_DIR: 0
   SERVER_DIR: /home/steam/serverdata/palworld

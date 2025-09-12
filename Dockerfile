@@ -6,6 +6,18 @@ LABEL version="1.0"
 LABEL description="Docker image for SteamCMD Game Server"
 LABEL maintainer = ["Riker Q."]
 
+                 # Update / Backup Frequency
+                 # BACKUP_CRON_X uses standard cron syntax: 
+                 # ┌───────────── minute (0 - 59)
+                 # │ ┌───────────── hour (0 - 23)
+                 # │ │ ┌───────────── day of month (1 - 31)
+                 # │ │ │ ┌───────────── month (1 - 12)
+                 # │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+                 # │ │ │ │ │
+                 # │ │ │ │ │
+                 # * * * * *
+ARG BACKUP_CRON_X="0 4 * * *"
+
 # Build arguments (override via docker-compose build.args)
 ARG APP_USER=steam
 ARG BACKUPS_DIR=GenericBackups
@@ -32,6 +44,7 @@ ARG STEAMCMD_INSTALL_OPTIONS=""
 ## for expansion later in that instruction. Split into two ENVs so GAME_EXECUTABLE_CMD can
 ## reference GAME_EXECUTABLE_PATH correctly.
 ENV APP_USER=$APP_USER \
+    BACKUP_CRON_X=$BACKUP_CRON_X \
     BACKUPS_DIR=$BACKUPS_DIR \
     DATA_DIR=$DATA_DIR \
     GAME_NAME=$GAME_NAME \
@@ -99,6 +112,7 @@ RUN chown -R ${APP_USER} ${DATA_DIR}/repos/ \
     && chmod +x ${DATA_DIR}/repos/linux-steamcmd/SaveAndUpdate.sh \
     && cp ${DATA_DIR}/repos/linux-steamcmd/steamcmd_server* /etc/systemd/system/ \
     && cp ${DATA_DIR}/repos/linux-steamcmd/etc/cron.d/steamcmd_server_update /etc/cron.d/steamcmd_server_update \
+    && sed -i "s|\[REPLACE_WITH_CRONX\]|${BACKUP_CRON_X}|g" /etc/cron.d/steamcmd_server_update \
     && chmod 644 /etc/cron.d/steamcmd_server_update \
     && cp ${DATA_DIR}/repos/docker-systemctl-replacement/files/docker/systemctl3.py /usr/bin/systemctl \
     #write sed command to replace "$EXECPATH" variable in steamcmd_server.service file with "${GAME_EXECUTABLE_CMD}"
