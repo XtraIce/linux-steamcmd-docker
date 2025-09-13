@@ -19,22 +19,20 @@ x-vrising-vars: &vrising-vars
   GAME_EXECUTABLE_POSTFIX: "-persistentDataPath /home/steam/serverdata/vrising/save-data"
   GAME_ID: 1829350
   GAME_NAME: vrising
-  GAME_SETTINGS_PATH: StreamingAssets/Settings
+  GAME_SETTINGS_PATH: VRisingServer_Data/StreamingAssets/Settings/
   HOME: /home/steam
   RCON_PASSWORD: password
   RCON_PORT: 25576
   MIGRATION_DATA_HOST_DIR: files/Saved_Game
   MIGRATION_DATA_CNTR_DIR: /usr/home/steam/serverdata/migration-data
-  SAVED_GAME_DIR: /home/steam/serverdata/vrising/save-data
+  SAVED_GAME_DIR: save-data #If need to backup manually: docker cp vrising-server:/home/steam/serverdata/vrising/save-data vrising/backups
   SAVED_GAME_HASH_DIR: 0
   SERVER_DIR: /home/steam/serverdata/vrising
   START_SCRIPT: /usr/local/src/vrising-scripts/run_server.sh
   STEAMCMD_DIR: /home/steam/serverdata/steamcmd
   STEAMCMD_INSTALL_OPTIONS: >-
         +@sSteamCmdForcePlatformType windows
-  
   STEAM_DIR: /home/steam/steam
-  HOME: /home/steam
 
 services:
   vrising:
@@ -88,7 +86,7 @@ services:
     volumes:
         - ./scripts:/usr/local/src/vrising-scripts:ro
         - ./files/Saved_Game:/usr/home/steam/serverdata/migration-data:ro
-        - ./backups:/home/steam/serverdata/VrisingBackups:rw
+        - ./backups:/home/steam/VrisingBackups:rw # Make sure backups directory exists and is world writable (777)
     tty: true
     stdin_open: true
     command: /usr/local/src/vrising-scripts/entrypoint.sh

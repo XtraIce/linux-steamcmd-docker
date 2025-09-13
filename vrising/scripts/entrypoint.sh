@@ -144,8 +144,10 @@ init_migrate_world_save(){
          "${MIGRATION_DATA_CNTR_DIR}/${SAVE_NAME}/SessionId.json" \
          "${MIGRATION_DATA_CNTR_DIR}/${SAVE_NAME}/StartDate.json" \
          "${PERSISTENT_PATH}/Saves/v4/${SAVE_NAME}/" #2>/dev/null || log "Failed to migrate world save!"
-
-      cp "${MIGRATION_DATA_CNTR_DIR}/Server*" "${PERSISTENT_PATH}/Settings/" 2>/dev/null || log "No Server settings files found to migrate."
+      echo "Migrated world save files: ${MIGRATION_DATA_CNTR_DIR}/${SAVE_NAME}/"
+      ls "${MIGRATION_DATA_CNTR_DIR}/${SAVE_NAME}/" || true
+      cp ${MIGRATION_DATA_CNTR_DIR}/${SAVE_NAME}/Server* "${PERSISTENT_PATH}/Settings/" 2>/dev/null || log "No Server settings files found to migrate."
+      
     else
       log "No World save found to migrate."
     fi
@@ -158,18 +160,23 @@ init_migrate_world_save(){
 enable_services() {
   # Ensure steamcmd related services are enabled and running
 if command -v systemctl >/dev/null 2>&1; then
-    for svc in steamcmd_server steamcmd_server_update; do
-        if ! systemctl is-enabled --quiet "${svc}"; then
-            log "Enabling service: ${svc}"
-            systemctl enable "${svc}" >/dev/null 2>&1 || log "Failed to enable ${svc}"
-        fi
-        if ! systemctl is-active --quiet "${svc}"; then
-            log "Starting service: ${svc}"
-            systemctl start "${svc}" >/dev/null 2>&1 || log "Failed to start ${svc}"
-        else
-            log "Service already active: ${svc}"
-        fi
-    done
+    # Enable and start steamcmd_server
+    if ! systemctl is-enabled --quiet "steamcmd_server"; then
+      log "Enabling service: steamcmd_server"
+      systemctl enable "steamcmd_server" >/dev/null 2>&1 || log "Failed to enable steamcmd_server"
+    fi
+    if ! systemctl is-active --quiet "steamcmd_server"; then
+      log "Starting service: steamcmd_server"
+      systemctl start "steamcmd_server" >/dev/null 2>&1 || log "Failed to start steamcmd_server"
+    else
+      log "Service already active: steamcmd_server"
+    fi
+    # Only enable steamcmd_server_update
+    if ! systemctl is-enabled --quiet "steamcmd_server_update"; then
+      log "Enabling service: steamcmd_server_update"
+      systemctl enable "steamcmd_server_update" >/dev/null 2>&1 || log "Failed to enable steamcmd_server_update"
+    fi
+    # Start cron if available (for scheduled updates)
     if command -v cron >/dev/null 2>&1; then
       log "Enabling and starting cron service"
       sudo sh -c '/usr/sbin/cron -f >> /var/log/cron.log 2>&1 &'
@@ -183,6 +190,7 @@ fi
 }
 
 if [ ! -f "${MARKER_FILE}" ]; then
+  init_migrate_world_save || true
   if [ "${INIT_RUN_SECONDS}" -gt 0 ]; then
   run_init_server || true
   else
@@ -193,7 +201,6 @@ if [ ! -f "${MARKER_FILE}" ]; then
   touch "${MARKER_FILE}" || true
   log "Initialization complete. Marker created."
   cleanup_xvfb
-  init_migrate_world_save || true
 else
   log "Initialization already done (marker present). Skipping init run."
   cleanup_xvfb
