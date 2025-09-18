@@ -105,8 +105,6 @@ docker compose up -d --build
 - Container data root: `/home/steam/serverdata/vrising`
 - Backups: `vrising/backups` (mounted as `/home/steam/VrisingBackups`)
 
-Note: The provided `vrising` compose uses an initialization entrypoint that prepares the environment, then idles. To actually run the server in-foreground, you can switch the command to the runner script:
-
 ```yaml
     command: /usr/local/src/vrising-scripts/run_server.sh
 ```
