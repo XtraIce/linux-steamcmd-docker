@@ -121,10 +121,6 @@ xvfb-run wine64 "${EXECUTABLE}" \
     ${SERVER_DESC:+-description "${SERVER_DESC}"} &
 SRV_PID=$!
 sleep 2
-touch "${LOG_FILE}"
-tail -n +0 -F "${LOG_FILE}" &
-TAIL_PID=$!
 
 trap 'kill ${SRV_PID} 2>/dev/null || true; wait ${SRV_PID} 2>/dev/null || true; kill ${TAIL_PID} 2>/dev/null || true' INT TERM
 wait ${SRV_PID}
-kill ${TAIL_PID} 2>/dev/null || true

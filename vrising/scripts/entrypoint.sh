@@ -158,38 +158,46 @@ init_migrate_world_save(){
 }
 
 enable_services() {
+      
   # Ensure steamcmd related services are enabled and running
 if command -v systemctl >/dev/null 2>&1; then
-    # Enable and start steamcmd_server
-    if ! systemctl is-enabled --quiet "steamcmd_server"; then
-      log "Enabling service: steamcmd_server"
-      systemctl enable "steamcmd_server" >/dev/null 2>&1 || log "Failed to enable steamcmd_server"
+  for svc in steamcmd_server steamcmd_server_update; do
+    if ! systemctl is-enabled --quiet "${svc}"; then
+        log "Enabling service: ${svc}"
+        systemctl enable "${svc}" >/dev/null 2>&1 || log "Failed to enable ${svc}"
     fi
-    if ! systemctl is-active --quiet "steamcmd_server"; then
-      log "Starting service: steamcmd_server"
-      systemctl start "steamcmd_server" >/dev/null 2>&1 || log "Failed to start steamcmd_server"
+    if ! systemctl is-active --quiet "${svc}"; then
+        log "Starting service: ${svc}"
+        systemctl start "${svc}" >/dev/null 2>&1 || log "Failed to start ${svc}"
     else
-      log "Service already active: steamcmd_server"
+        log "Service already active: ${svc}"
     fi
-    # Only enable steamcmd_server_update
-    if ! systemctl is-enabled --quiet "steamcmd_server_update"; then
-      log "Enabling service: steamcmd_server_update"
-      systemctl enable "steamcmd_server_update" >/dev/null 2>&1 || log "Failed to enable steamcmd_server_update"
-    fi
-    # Start cron if available (for scheduled updates)
-    if command -v cron >/dev/null 2>&1; then
-      log "Enabling and starting cron service"
-      sudo sh -c '/usr/sbin/cron -f >> /var/log/cron.log 2>&1 &'
-    else
-      log "cron not available; skipping cron service."
-    fi
-    systemctl daemon-reload || true
+  done
+  # Start cron if available (for scheduled updates)
+  if command -v cron >/dev/null 2>&1; then
+    log "Enabling and starting cron service"
+    sudo sh -c '/usr/sbin/cron -f >> /var/log/cron.log 2>&1 &'
+  else
+    log "cron not available; skipping cron service."
+  fi
+  systemctl daemon-reload || true
 else
     log "systemd not available; skipping steamcmd services."
 fi
 }
 
 if [ ! -f "${MARKER_FILE}" ]; then
+  # Register ARRCON host if possible
+  if [[ -n "${RCON_PORT:-}" && -n "${RCON_PASSWORD:-}" && -n "${GAME_NAME:-}" ]]; then
+  if command -v ARRCON >/dev/null 2>&1; then
+      log 'exit' | ARRCON -P "${RCON_PORT}" -p "${RCON_PASSWORD}" --save-host "${GAME_NAME}" || true
+  else
+      log 'ARRCON binary not found.'
+  fi
+  else
+  log 'ARRCON not run: missing RCON_PORT, RCON_PASSWORD, or GAME_NAME.'
+  fi
+
   init_migrate_world_save || true
   if [ "${INIT_RUN_SECONDS}" -gt 0 ]; then
   run_init_server || true

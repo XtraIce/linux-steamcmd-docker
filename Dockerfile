@@ -44,6 +44,7 @@ ARG STEAMCMD_INSTALL_OPTIONS=""
 ## for expansion later in that instruction. Split into two ENVs so GAME_EXECUTABLE_CMD can
 ## reference GAME_EXECUTABLE_PATH correctly.
 ENV APP_USER=$APP_USER \
+    BROADCAST_MAINTENANCE=true \
     BACKUP_CRON_X=$BACKUP_CRON_X \
     BACKUPS_DIR=$BACKUPS_DIR \
     DATA_DIR=$DATA_DIR \
@@ -70,11 +71,9 @@ ENV GAME_EXECUTABLE_CMD="${GAME_EXECUTABLE_PREFIX} ${GAME_EXECUTABLE_PATH} ${GAM
 ENV START_CMD="${START_SCRIPT:-${GAME_EXECUTABLE_CMD}}"
 RUN printenv
 
-# NOTE: APP_NAME intentionally omitted; compute at runtime if needed: APP_NAME="${GAME_NAME}-server"
-
 RUN apt-get update && apt-get -y upgrade \
     # Add winbind for ntlm_auth used by Wine (suppresses warning). Keep base minimal otherwise.
-    && apt-get -y install lib32gcc-s1 libc6-i386 wget apt-utils git systemd curl unzip sudo python3 net-tools nano cron winbind xvfb \
+    && apt-get -y install lib32gcc-s1 libc6-i386 wget apt-utils git systemd curl unzip sudo python3 net-tools nano cron winbind xvfb procps\
     && useradd -ms /bin/bash ${APP_USER} \
     && echo "${APP_USER}:${APP_USER}" | chpasswd
 
@@ -110,6 +109,7 @@ RUN curl -L -o ${DATA_DIR}/ARRCON.zip https://github.com/radj307/ARRCON/releases
 RUN chown -R ${APP_USER} ${DATA_DIR}/repos/ \
     && chmod +x ${DATA_DIR}/repos/linux-steamcmd/QueryUpdateAvailable.sh \
     && chmod +x ${DATA_DIR}/repos/linux-steamcmd/SaveAndUpdate.sh \
+    && chmod +x ${DATA_DIR}/repos/linux-steamcmd/BroadcastMaintenance.sh \
     && cp ${DATA_DIR}/repos/linux-steamcmd/steamcmd_server* /etc/systemd/system/ \
     && cp ${DATA_DIR}/repos/linux-steamcmd/etc/cron.d/steamcmd_server_update /etc/cron.d/steamcmd_server_update \
     && sed -i "s|\[REPLACE_WITH_CRONX\]|${BACKUP_CRON_X}|g" /etc/cron.d/steamcmd_server_update \
@@ -121,6 +121,8 @@ RUN chown -R ${APP_USER} ${DATA_DIR}/repos/ \
     && sed -i "s|\$EXECPATH|${DATA_DIR}/repos/linux-steamcmd|g" /etc/systemd/system/steamcmd_server_update.service \
     #write sed command to replace "game_server" in SaveAndUpdate.sh file with "${GAME_NAME}"
     && sed -i "s|game_server|${GAME_NAME}|g" ${DATA_DIR}/repos/linux-steamcmd/SaveAndUpdate.sh \
+    #write sed command to replace "game_server" in BroadcastMaintenance.sh file with "${GAME_NAME}"
+    && sed -i "s|game_server|${GAME_NAME}|g" ${DATA_DIR}/repos/linux-steamcmd/BroadcastMaintenance.sh \
     #Append global environment variables to /etc/environment
     && echo "DATA_DIR=${DATA_DIR}" >> /etc/environment
 #Install SteamCMD

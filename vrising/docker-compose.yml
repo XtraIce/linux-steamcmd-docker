@@ -11,8 +11,9 @@ x-vrising-vars: &vrising-vars
                 # │ │ │ │ │
                 # * * * * *
       # Example: "0 4 * * *" runs the update/backup daily at 4:00 AM.
-  BACKUP_CRON_X: "0 4 * * *"  # Daily at 4 AM 
+  BACKUP_CRON_X: "0 10 * * *"  # Daily at 4 AM 
   BACKUPS_DIR: VrisingBackups
+  BROADCAST_MAINTENANCE: true
   DATA_DIR: /home/steam/serverdata
   GAME_EXECUTABLE_PREFIX: "/usr/bin/xvfb-run -a wine64"
   GAME_EXECUTABLE: VRisingServer.exe
@@ -21,7 +22,8 @@ x-vrising-vars: &vrising-vars
   GAME_NAME: vrising
   GAME_SETTINGS_PATH: VRisingServer_Data/StreamingAssets/Settings/
   HOME: /home/steam
-  RCON_PASSWORD: password
+  RCON_BROADCAST_CMD: announce
+  RCON_PASSWORD: chanchovania
   RCON_PORT: 25576
   MIGRATION_DATA_HOST_DIR: files/Saved_Game
   MIGRATION_DATA_CNTR_DIR: /usr/home/steam/serverdata/migration-data
