@@ -8,6 +8,10 @@ This repo contains two ready-to-run setups:
 
 Both share the same Dockerfile base and store data under `/home/steam/serverdata` inside the container.
 
+# Paired Repo
+Utilizes service files and scripts defined in this repo: https://github.com/XtraIce/linux-steamcmd
+I seperated them for if someone just wants to use those files without a container.
+
 ## Admin cheat sheet
 
 Build + up
